@@ -11,62 +11,35 @@ import rgbHex from "rgb-hex";
 export default function page() {
     const params = useParams<{ pageName: string }>()
     const [selected, setSelected] = useState<{ id: string, type: string }>({ id: "", type: "" })
+    const [board, setBoard] = useState<string>()
     const [colorPicker, setColorPicker] = useState("#FFFF")
     const [addedElement, setAdded] = useState(false)
-    const pcElementsMap =
-        [
-            {
-                "type": "div",
-                "style": {},
-                "children": [
-                    {
-                        "type": "div",
-                        "style": "dlld",
-                        "children":[
+    let [pcElementsMap, setPcElement] = useState<ElementWithChildren[]>([]);
+    let [mbElementsMap, setMbElement] = useState<ElementWithChildren[]>([]);
 
-                        ]
-                    }
-                ]
-            },
-        ]
-        type ElementWithChildren = {
-            type: string;
-            style: {};
-            children: ElementWithChildren[]; // Recursively defines children of the same type
-          };
-          
-          function getElementById(id: string): ElementWithChildren | undefined {
-            const idParts = id.split('-');
-            let currentElement: ElementWithChildren[] = pcElementsMap;  // Assuming `pcElementsMap` is an array of ElementWithChildren objects
-          
-            console.log(idParts);
-          
-            for (let i = 0; i < idParts.length - 1; i++) {
-              const index = parseInt(idParts[i], 10);
-          
-              // Ensure that currentElement is an array and contains children
-              if (Array.isArray(currentElement)) {
-                const nextElement = currentElement[index];
-                if (nextElement && Array.isArray(nextElement.children)) {
-                  currentElement = nextElement.children;  // Move to the next level of children
-                } else {
-                  return undefined; // Return undefined if there are no children at this level
-                }
-              } else {
-                return undefined; // Return undefined if currentElement is not an array
-              }
+
+    type ElementWithChildren = {
+        type: string;
+        style: {};
+        children: ElementWithChildren[]; // Recursively defines children of the same type
+    };
+
+    function getElementById(id: string, arr: ElementWithChildren[]): ElementWithChildren | undefined {
+        const idPath = id.split("-")
+        let element
+
+        for (let i = 0; i < idPath.length; i++) {
+            if (i == 0) {
+                element = arr[Number(idPath[i])]
+            } else {
+                element = element!.children[Number(idPath[i])]
             }
-          
-            // Final step: access the last child element
-            const index = parseInt(idParts[idParts.length - 1], 10);
-            if (Array.isArray(currentElement)) {
-              return currentElement[index]; // Return the element at the specified index
-            }
-          
-            return undefined; // Return undefined if the element isn't found
-          }
-          
-        
+        }
+
+        return element;
+    }
+
+
     const boarBorder = () => {
         const boards = document.getElementsByClassName("elem")
 
@@ -76,49 +49,7 @@ export default function page() {
         }
     }
 
-    
-
-    const selectBoard = (id: string,type:string) => {
-        boarBorder()
-        document.getElementById(id)!.style.outline = "2px blue solid"
-        if (document.getElementById(id)!.style.backgroundColor) {
-            setColorPicker("#" + rgbHex(document.getElementById(id)!.style.backgroundColor))
-        }
-        setSelected({
-            id: id,
-            type: type
-        })
-
-    }
-
-    const addBox = ()=>{
-        const parentElem = document.getElementById(selected.id)
-        const parentPos= getElementById(selected.id)
-
-        const newElem = document.createElement("div")
-
-        newElem.style.width = "30px"
-        newElem.style.height = "30px"
-
-        newElem.style.backgroundColor = "rgb(0,0,0)"
-        newElem.className = "elem"
-
-        parentPos?.children.push(
-            {
-                "type":"div",
-                "style":newElem.style,
-                "children" : []
-            }
-        )
-
-        newElem.id = `${selected.id}-${parentPos?.children.length}`
-
-        newElem.onclick = ()=>{
-            event.stopPropagation()
-            selectBoard(newElem.id,"div")
-        }
-
-        parentElem?.appendChild(newElem)
+    const closeAdding = () => {
         document.getElementById("brd")!.style.pointerEvents = "initial"
         document.getElementById("brd")!.style.filter = "none"
 
@@ -131,26 +62,108 @@ export default function page() {
         }
 
         setAdded(false)
+    }
 
+    const selectBoard = (id: string, type: string) => {
+        boarBorder()
+        document.getElementById(id)!.style.outline = "2px blue solid"
+        if (document.getElementById(id)!.style.backgroundColor) {
+            setColorPicker("#" + rgbHex(document.getElementById(id)!.style.backgroundColor))
+        }
+        if (type == "board") {
+            setBoard(id)
+        }
+        setSelected({
+            id: id,
+            type: type
+        })
 
+    }
+
+    const addBox = () => {
+        const parentElem = document.getElementById(selected.id);
+        const newBox = document.createElement("div")
+
+        newBox.style.width = "100px"
+        newBox.style.height = "100px"
+        newBox.style.backgroundColor = "rgb(0,0,0)"
+        newBox.className = "elem"
+
+        let id;
+        const el = {
+            "type": "div",
+            "style": newBox.style,
+            "children": []
+        }
+
+        if (selected.id === board) {
+            console.log("hii");
+
+            if (board === "mobile") {
+                setMbElement((arr) => {
+                    arr.push(el)
+                    const id = `${arr.length - 1}`
+                    newBox.id = id
+
+                    return arr
+                })
+
+                parentElem?.appendChild(newBox)
+            } else if (board === "pc") {
+                setPcElement(
+                    (arr) => {
+                        arr.push(el)
+                        id = `${pcElementsMap.length}`
+                        newBox.id = id
+                        return arr
+                    }
+                )
+
+                parentElem?.appendChild(newBox)
+
+            }
+
+        } else {
+            if (board == "pc") {
+                setPcElement(
+                    (arr) => {
+                        const parentPath = getElementById(selected.id, arr)
+                        parentPath?.children.push(el)
+                        id = `${selected.id}-${parentPath!.children.length - 1}`
+                        newBox.id = id
+
+                        return arr
+                    }
+                )
+            } else if (board == "mobie") {
+                setMbElement(
+                    (arr) => {
+                        const parentPath = getElementById(selected.id, arr)
+                        parentPath?.children.push(el)
+                        id = `${selected.id}-${parentPath!.children.length - 1}`
+                        newBox.id = id
+
+                        return arr
+                    }
+                )
+            }
+            parentElem?.appendChild(newBox)
+        }
+        console.log(id);
+
+        newBox.onclick = () => {
+            event?.stopPropagation()
+            selectBoard(id!, "div")
+        }
+
+        closeAdding()
     }
 
     const addElement = () => {
         return <div className="absolute w-[40vw] h-[15vh] left-[30vw] bg-[#1E1E1E] text-white flex flex-cell m-5 p-5 justify-around">
             <MdFullscreenExit className="hover:text-[red] hover:cursor-pointer" onClick={
                 () => {
-                    document.getElementById("brd")!.style.pointerEvents = "initial"
-                    document.getElementById("brd")!.style.filter = "none"
-
-                    const elemtens = document.getElementsByClassName("edt")
-
-                    for (let i = 0; i < elemtens.length; i++) {
-                        let el = elemtens[i] as HTMLElement
-                        el.style.pointerEvents = "initial"
-                        el.style.filter = "none"
-                    }
-
-                    setAdded(false)
+                    closeAdding()
                 }
             } />
 
@@ -161,6 +174,8 @@ export default function page() {
 
             <div className="border w-1/4 flex flex-col justify-center items-center hover:bg-[gray] hover:text-black hover:cursor-pointer" onClick={
                 () => {
+                    console.log('dkopkd');
+
                     addBox()
                 }
             }>
@@ -183,13 +198,13 @@ export default function page() {
 
             <div className="w-[45vw] h-[30vw] bg-white elem m-3" id="pc" onClick={
                 () => {
-                    selectBoard("pc","board")
+                    selectBoard("pc", "board")
                 }
             }></div>
 
             <div className="w-[20vw] h-[40vw] bg-white elem " id="mobile" onClick={
                 () => {
-                    selectBoard("mobile","board")
+                    selectBoard("mobile", "board")
                 }
             }></div>
 
@@ -219,11 +234,11 @@ export default function page() {
                             }
                         }
                     } />
-                
-                
+
+
                 </div>
 
-                
+
 
                 <button className="text-white font-bold p-1 bg-[#706f6f] w-fit text-center rounded-sm" onClick={
                     () => {
