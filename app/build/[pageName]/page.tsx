@@ -12,11 +12,16 @@ export default function page() {
     const params = useParams<{ pageName: string }>()
     const [selected, setSelected] = useState<{ id: string, type: string }>({ id: "", type: "" })
     const [board, setBoard] = useState<string>()
-    const [colorPicker, setColorPicker] = useState("#FFFF")
     const [addedElement, setAdded] = useState(false)
-    let [pcElementsMap, setPcElement] = useState<ElementWithChildren[]>([]);
-    let [mbElementsMap, setMbElement] = useState<ElementWithChildren[]>([]);
+    const [pcElementsMap, setPcElement] = useState<ElementWithChildren[]>([]);
+    const [mbElementsMap, setMbElement] = useState<ElementWithChildren[]>([]);
 
+    const [mbPageColor, setMbPageColor] = useState("#FFFF")
+    const [pcPageColor, setPcPageColor] = useState("#FFFF")
+
+    const [colorPicker, setColorPicker] = useState("#FFFF")
+    const [width, setWidth] = useState(0)
+    const [height, setHeight] = useState(0)
 
     type ElementWithChildren = {
         type: string;
@@ -37,6 +42,27 @@ export default function page() {
         }
 
         return element;
+    }
+
+    const changeStyle = () => {
+        if (board == "pc") {
+            setPcElement(
+                (arr) => {
+                    const parentPath = getElementById(selected.id, arr)
+                    parentPath!.style = document.getElementById(`${selected.id}`)!.style
+                    return arr
+                }
+            )
+        } else if (board == "mobile") {
+            setMbElement(
+                (arr) => {
+                    const parentPath = getElementById(selected.id, arr)
+                    parentPath!.style = document.getElementById(`${selected.id}`)!.style
+                    return arr
+                }
+            )
+        }
+
     }
 
 
@@ -72,6 +98,12 @@ export default function page() {
         }
         if (type == "board") {
             setBoard(id)
+        } else {
+            const w = document.getElementById(id)!.style.width
+            const h = document.getElementById(id)!.style.height
+            
+            setHeight(Number(h.substring(0, h.length - 2)))
+            setWidth(Number(w.substring(0, w.length - 2)))
         }
         setSelected({
             id: id,
@@ -113,7 +145,7 @@ export default function page() {
                 setPcElement(
                     (arr) => {
                         arr.push(el)
-                        id = `${pcElementsMap.length}`
+                        id = `${arr.length - 1}`
                         newBox.id = id
                         return arr
                     }
@@ -129,6 +161,8 @@ export default function page() {
                     (arr) => {
                         const parentPath = getElementById(selected.id, arr)
                         parentPath?.children.push(el)
+                        console.log(selected.id);
+
                         id = `${selected.id}-${parentPath!.children.length - 1}`
                         newBox.id = id
 
@@ -196,13 +230,13 @@ export default function page() {
     return <main className="flex w-full">
         <div className="w-full flex justify-center items-center" id="brd">
 
-            <div className="w-[45vw] h-[30vw] bg-white elem m-3" id="pc" onClick={
+            <div className="w-[45vw] h-[30vw] bg-white elem m-3 overflow-scroll	" id="pc" onClick={
                 () => {
                     selectBoard("pc", "board")
                 }
             }></div>
 
-            <div className="w-[20vw] h-[40vw] bg-white elem " id="mobile" onClick={
+            <div className="w-[20vw] h-[40vw] bg-white elem overflow-scroll	" id="mobile" onClick={
                 () => {
                     selectBoard("mobile", "board")
                 }
@@ -223,6 +257,18 @@ export default function page() {
                             if (selected.id) {
                                 document.getElementById(`${selected.id}`)!.style.backgroundColor = e.target.value
                             }
+                            if (selected.id) {
+                                document.getElementById(`${selected.id}`)!.style.backgroundColor = e.target.value
+                                if (selected.id != board) {
+                                    changeStyle()
+                                } else {
+                                    if (board == "pc") {
+                                        setPcPageColor(e.target.value)
+                                    } else if (board == "mobile") {
+                                        setMbPageColor(e.target.value)
+                                    }
+                                }
+                            }
 
                         }
                     } />
@@ -231,12 +277,43 @@ export default function page() {
                             setColorPicker(e.target.value)
                             if (selected.id) {
                                 document.getElementById(`${selected.id}`)!.style.backgroundColor = e.target.value
+                                if (selected.id != board) {
+                                    changeStyle()
+                                } else {
+                                    if (board == "pc") {
+                                        setPcPageColor(e.target.value)
+                                    } else if (board == "mobile") {
+                                        setMbPageColor(e.target.value)
+                                    }
+                                }
                             }
                         }
                     } />
 
 
                 </div>
+
+                <label className="text-white m-3">width : </label>
+                <div className="flex"><input type="number" className="w-[80%]" value={width} min={0} onChange={
+                    (e) => {
+                        if (selected.id != board) {
+                            setWidth(Number(e.target.value))
+                            document.getElementById(`${selected.id}`)!.style.width = `${e.target.value}px`
+                            changeStyle()
+                        }
+                    }
+                } /><label className="text-white pl-1">px</label></div>
+
+                <label className="text-white m-3">height : </label>
+                <div className="flex"><input type="number" className="w-[80%]" value={height} min={0} onChange={
+                    (e) => {
+                        if (selected.id != board) {
+                            setHeight(Number(e.target.value))
+                            document.getElementById(`${selected.id}`)!.style.height = `${e.target.value}px`
+                            changeStyle()
+                        }
+                    }
+                } /><label className="text-white pl-1">px</label></div>
 
 
 
